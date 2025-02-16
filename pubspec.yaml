@@ -1,0 +1,30 @@
+name: pokemon
+description: "A Flutter project for a Pokédex app."
+
+publish_to: 'none' # Evita publicación accidental en pub.dev
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.6.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  equatable: ^2.0.7  # Comparación de objetos
+  flutter_bloc: ^9.0.0  # Manejo de estados
+  http: ^1.3.0  # Consumo de API
+  cached_network_image: ^3.4.1  # Carga eficiente de imágenes
+  google_fonts: ^6.2.1 #estilo de letra
+  cupertino_icons: ^1.0.8  # Íconos estilo iOS
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0  # Reglas de linting recomendadas
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/  # Asegura que se detecten imágenes dentro de la carpeta
