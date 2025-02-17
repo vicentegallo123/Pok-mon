@@ -1,11 +1,11 @@
-
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:pokemon/data/models/pokemon.dart';
-import 'package:palette_generator/palette_generator.dart';
+import 'package:google_fonts/google_fonts.dart'; // Fuente personalizada
+import 'package:pokemon/data/models/pokemon.dart'; // Modelo de datos de Pokémon
+import 'package:palette_generator/palette_generator.dart'; // Generador de colores basado en imágenes
 
+// Pantalla de detalles de un Pokémon
 class DetailScreen extends StatefulWidget {
-  final Pokemon pokemon;
+  final Pokemon pokemon; // Recibe un objeto Pokémon
   const DetailScreen({Key? key, required this.pokemon}) : super(key: key);
 
   @override
@@ -13,41 +13,42 @@ class DetailScreen extends StatefulWidget {
 }
 
 class _DetailScreenState extends State<DetailScreen> {
-  Color primaryColor = Colors.grey;
-  Color secondaryColor = Colors.grey;
+  Color primaryColor = Colors.grey; // Color principal del fondo
+  Color secondaryColor = Colors.grey; // Color secundario
 
   @override
   void initState() {
     super.initState();
-    _fetchPalette();
+    _fetchPalette(); // Llamamos a la función para obtener la paleta de colores
   }
 
+  // Método para generar colores a partir de la imagen del Pokémon
   Future<void> _fetchPalette() async {
     final paletteGenerator = await PaletteGenerator.fromImageProvider(
-      NetworkImage(widget.pokemon.imageUrl),
-      maximumColorCount: 5,
+      NetworkImage(widget.pokemon.imageUrl), // Usa la imagen del Pokémon
+      maximumColorCount: 5, // Número máximo de colores a extraer
     );
     setState(() {
-      primaryColor = paletteGenerator.dominantColor?.color ?? Colors.grey;
+      primaryColor = paletteGenerator.dominantColor?.color ?? Colors.grey; // Color dominante
       secondaryColor = paletteGenerator.vibrantColor?.color ??
           paletteGenerator.lightVibrantColor?.color ??
           paletteGenerator.darkMutedColor?.color ??
-          Colors.black;
+          Colors.black; // Color secundario basado en la paleta generada
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double circleSize = screenHeight * 0.4; // El círculo ocupa el 40% de la pantalla
+    final double screenHeight = MediaQuery.of(context).size.height; // Altura de la pantalla
+    final double circleSize = screenHeight * 0.4; // Tamaño del círculo (40% de la pantalla)
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.pokemon.name.toUpperCase(),
-          style: GoogleFonts.pressStart2p(),
+          widget.pokemon.name.toUpperCase(), // Nombre del Pokémon en mayúsculas
+          style: GoogleFonts.pressStart2p(), // Fuente personalizada
         ),
-        backgroundColor: primaryColor,
+        backgroundColor: primaryColor, // Color de la barra de navegación
       ),
       body: Column(
         children: [
@@ -58,13 +59,13 @@ class _DetailScreenState extends State<DetailScreen> {
                 height: circleSize,
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  color: primaryColor.withOpacity(0.3),
+                  color: primaryColor.withOpacity(0.3), // Círculo de fondo con opacidad
                   shape: BoxShape.circle,
                 ),
               ),
               Image.network(
-                widget.pokemon.imageUrl,
-                height: circleSize * 1, // Imagen más grande dentro del círculo
+                widget.pokemon.imageUrl, // Imagen del Pokémon
+                height: circleSize * 1, // Tamaño relativo al círculo
                 fit: BoxFit.contain,
               ),
             ],
@@ -76,11 +77,11 @@ class _DetailScreenState extends State<DetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text('#${widget.pokemon.id}' ,
-                        style: GoogleFonts.pressStart2p(fontSize: 14)),
+                    Text('#${widget.pokemon.id}',
+                        style: GoogleFonts.pressStart2p(fontSize: 14)), // ID del Pokémon
                     Text('Type: ${widget.pokemon.type}',
                         style: GoogleFonts.pressStart2p(
-                            fontSize: 14, color: primaryColor)),
+                            fontSize: 14, color: primaryColor)), // Tipo del Pokémon
                     const SizedBox(height: 20),
                     _buildStatBar('HP', widget.pokemon.hp),
                     _buildStatBar('Attack', widget.pokemon.attack),
@@ -100,6 +101,7 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
+  // Método para construir la barra de estadísticas
   Widget _buildStatBar(String label, int value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -107,22 +109,22 @@ class _DetailScreenState extends State<DetailScreen> {
         children: [
           SizedBox(
             width: 120,
-            child: Text(label, style: GoogleFonts.pressStart2p(fontSize: 12)),
+            child: Text(label, style: GoogleFonts.pressStart2p(fontSize: 12)), // Etiqueta de la estadística
           ),
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12), // Bordes redondeados
               child: LinearProgressIndicator(
-                value: value / 100,
-                color: primaryColor, // Color dinámico según la paleta del Pokémon
-                backgroundColor: secondaryColor.withOpacity(0.3),
-                minHeight: 10,
+                value: value / 100, // Normaliza la estadística para la barra de progreso
+                color: primaryColor, // Usa el color principal
+                backgroundColor: secondaryColor.withOpacity(0.3), // Color de fondo de la barra
+                minHeight: 10, // Altura de la barra
               ),
             ),
           ),
           SizedBox(
             width: 40,
-            child: Text('$value', style: GoogleFonts.pressStart2p(fontSize: 12)),
+            child: Text('$value', style: GoogleFonts.pressStart2p(fontSize: 12)), // Valor numérico
           ),
         ],
       ),

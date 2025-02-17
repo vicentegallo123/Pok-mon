@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:pokemon/bloc/pokemon_state.dart';
-import 'package:pokemon/bloc/pokemon_event.dart';
-import 'package:pokemon/bloc/pokemon_bloc.dart';
-import '../widgets/pokemon_card.dart';
+import 'package:flutter_bloc/flutter_bloc.dart'; // Para la gestión de estado con BLoC
+import 'package:shared_preferences/shared_preferences.dart'; // Para almacenar el historial de búsqueda
+import 'package:pokemon/bloc/pokemon_state.dart'; // Importación del estado del BLoC
+import 'package:pokemon/bloc/pokemon_event.dart'; // Importación de los eventos del BLoC
+import 'package:pokemon/bloc/pokemon_bloc.dart'; // Importación del BLoC de Pokémon
+import '../widgets/pokemon_card.dart'; // Widget personalizado para mostrar las tarjetas de Pokémon
 
+// Pantalla principal de la aplicación
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
 
@@ -14,27 +15,29 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _searchController = TextEditingController();
-  String currentSearch = '';
-  List<String> searchHistory = [];
-  bool isReloading = false;
-  bool isSearching = false;
+  final ScrollController _scrollController = ScrollController(); // Controlador para detectar el scroll
+  final TextEditingController _searchController = TextEditingController(); // Controlador del campo de búsqueda
+  String currentSearch = ''; // Almacena la búsqueda actual
+  List<String> searchHistory = []; // Historial de búsquedas guardado
+  bool isReloading = false; // Indica si se está recargando la lista de Pokémon
+  bool isSearching = false; // Indica si se está realizando una búsqueda
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-    _loadSearchHistory();
-    context.read<PokemonBloc>().add(LoadSearchHistory());
+    _scrollController.addListener(_onScroll); // Agrega un listener al scroll
+    _loadSearchHistory(); // Carga el historial de búsqueda almacenado en caché
+    context.read<PokemonBloc>().add(LoadSearchHistory()); // Carga el historial en el BLoC
   }
 
+  // Método que detecta cuando se llega al final del scroll
   void _onScroll() {
     if (_isBottom && !isSearching) {
-      context.read<PokemonBloc>().add(LoadMorePokemons());
+      context.read<PokemonBloc>().add(LoadMorePokemons()); // Cargar más Pokémon cuando se llega al final
     }
   }
 
+  // Comprueba si se ha llegado al final del scroll
   bool get _isBottom {
     if (!_scrollController.hasClients) return false;
     final maxScroll = _scrollController.position.maxScrollExtent;
@@ -42,6 +45,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return currentScroll >= (maxScroll * 0.9);
   }
 
+  // Cargar el historial de búsqueda desde SharedPreferences
   void _loadSearchHistory() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -49,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Guardar una nueva búsqueda en el historial
   void _saveSearchHistory(String query) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -62,6 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Acción cuando se realiza una búsqueda
   void _onSearchSubmitted(String query) {
     if (query.isNotEmpty) {
       setState(() {
@@ -74,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  // Eliminar un elemento del historial de búsqueda
   void _onDeleteHistoryItem(String query) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -82,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Recargar la lista de Pokémon
   void _reloadPokemonList() {
     setState(() {
       isReloading = true;
@@ -107,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: _reloadPokemonList,
           child: isReloading
               ? Image.asset('assets/descarga2.png', height: 50)
-              : Image.asset('assets/descarga.png', height: 50),
+              : Image.asset('assets/descarga.png', height: 50), // Cambia la imagen al recargar
         ),
         centerTitle: true,
       ),
@@ -118,6 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.all(6.0),
               child: Column(
                 children: [
+                  // Muestra la cantidad total de Pokémon obtenidos
                   BlocBuilder<PokemonBloc, PokemonState>(
                     builder: (context, state) {
                       if (state is PokemonLoaded) {
@@ -144,6 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return const SizedBox.shrink();
                     },
                   ),
+                  // Campo de búsqueda
                   TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
@@ -153,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     onSubmitted: _onSearchSubmitted,
                   ),
+                  // Muestra el historial de búsqueda
                   if (searchHistory.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 2.0),
@@ -179,6 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            // Mensaje de búsqueda actual
             if (isSearching)
               Padding(
                 padding: const EdgeInsets.all(6.0),
@@ -190,36 +202,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.blueAccent),
                 ),
               ),
+            // Lista de Pokémon en formato Grid
             Expanded(
               child: BlocBuilder<PokemonBloc, PokemonState>(
                 builder: (context, state) {
                   if (state is PokemonLoading) {
-                    return const Center(child: CircularProgressIndicator());
+                    return const Center(child: CircularProgressIndicator()); // Cargando Pokémon
+                  } else if (state is PokemonLoadingMore) {
+                    return const Center(child: CircularProgressIndicator()); // Cargando más Pokémon
                   } else if (state is PokemonLoaded) {
                     if (state.pokemons.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset('assets/error.png', height: 150),
-                            const SizedBox(height: 20),
-                            const Text(
-                              "No se encontraron resultados.",
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      );
+                      return _buildErrorWidget("No se encontraron resultados.");
                     }
                     return GridView.builder(
                       controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 8),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,
                         childAspectRatio: 1.2,
                         crossAxisSpacing: 5,
@@ -236,7 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               arguments: pokemon,
                             );
                           },
-                          child: PokemonCard(pokemon: pokemon),
+                          child: PokemonCard(pokemon: pokemon), // Widget que muestra un Pokémon
                         );
                       },
                     );
@@ -253,6 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Widget para mostrar errores
   Widget _buildErrorWidget(String message) {
     return Center(
       child: Column(
@@ -261,9 +260,8 @@ class _HomeScreenState extends State<HomeScreen> {
           Image.asset('assets/error.png', height: 150),
           const SizedBox(height: 20),
           Text(
-            message.isNotEmpty ? message : "Error desconocido",
-            style: const TextStyle(
-                fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+            message,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
           ),
         ],
       ),
