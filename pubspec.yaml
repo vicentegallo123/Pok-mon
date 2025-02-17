@@ -6,17 +6,21 @@ publish_to: 'none' # Evita publicación accidental en pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.6.1
+  sdk: ">=2.17.0 <3.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
   equatable: ^2.0.7  # Comparación de objetos
-  flutter_bloc: ^9.0.0  # Manejo de estados
+  flutter_bloc: ^7.3.3  # versión compatible con yield
   http: ^1.3.0  # Consumo de API
   cached_network_image: ^3.4.1  # Carga eficiente de imágenes
-  google_fonts: ^6.2.1 #estilo de letra
+  google_fonts: ^6.2.1 # Estilo de letra
   cupertino_icons: ^1.0.8  # Íconos estilo iOS
+  palette_generator: ^0.3.3+6  # Paleta de colores
+  shared_preferences: ^2.2.0  # Para guardar términos de búsqueda
+  gif: ^2.3.0
+
 
 dev_dependencies:
   flutter_test:
@@ -28,3 +32,5 @@ flutter:
 
   assets:
     - assets/  # Asegura que se detecten imágenes dentro de la carpeta
+    - assets/error.png
+    - assets/pikachu.gif

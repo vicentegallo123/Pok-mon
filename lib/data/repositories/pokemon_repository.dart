@@ -1,32 +1,46 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../../data/models/pokemon.dart';
+import '../models/pokemon.dart';
 
-/// Repositorio encargado de obtener datos de Pokémon desde la API.
 class PokemonRepository {
-  /// URL base de la API de Pokémon con un límite de 500 resultados.
-  final String apiUrl = 'https://pokeapi.co/api/v2/pokemon?limit=200';
+  static const int apiLimit = 1000; // Límite total de la API
 
-  /// Obtiene la lista de Pokémon desde la API.
-  ///
-  /// Retorna una lista de instancias de [Pokemon].
-  /// En caso de error, lanza una excepción.
-  Future<List<Pokemon>> fetchPokemons() async {
-    final response = await http.get(Uri.parse(apiUrl));
+  // Obtener Pokémon con paginación
+  Future<List<Pokemon>> fetchPokemons({int page = 0, int limit = 20}) async {
+    final offset = page * limit;
+    if (offset >= apiLimit) return [];
+
+    final url = 'https://pokeapi.co/api/v2/pokemon?limit=$limit&offset=$offset';
+    final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       List<dynamic> results = data['results'];
-
       List<Pokemon> pokemons = [];
+
       for (var pokemon in results) {
-        final pokeDetail = await http.get(Uri.parse(pokemon['url']));
-        final pokeData = jsonDecode(pokeDetail.body);
-        pokemons.add(Pokemon.fromJson(pokeData));
+        final detailResponse = await http.get(Uri.parse(pokemon['url']));
+        if (detailResponse.statusCode == 200) {
+          final detailData = jsonDecode(detailResponse.body);
+          pokemons.add(Pokemon.fromJson(detailData));
+        }
       }
       return pokemons;
     } else {
-      throw Exception('Error al obtener Pokémon');
+      throw Exception('Error al obtener Pokémon.');
+    }
+  }
+
+  // Búsqueda en la API
+  Future<List<Pokemon>> searchPokemons(String query) async {
+    final url = 'https://pokeapi.co/api/v2/pokemon/$query';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return [Pokemon.fromJson(data)];
+    } else {
+      return []; // No se encontró el Pokémon
     }
   }
 }

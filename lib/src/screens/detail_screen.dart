@@ -1,78 +1,97 @@
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../data/models/pokemon.dart';
+import 'package:pokemon/data/models/pokemon.dart';
+import 'package:palette_generator/palette_generator.dart';
 
+class DetailScreen extends StatefulWidget {
+  final Pokemon pokemon;
+  const DetailScreen({Key? key, required this.pokemon}) : super(key: key);
 
-class DetailScreen extends StatelessWidget {
+  @override
+  _DetailScreenState createState() => _DetailScreenState();
+}
+
+class _DetailScreenState extends State<DetailScreen> {
+  Color primaryColor = Colors.grey;
+  Color secondaryColor = Colors.grey;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPalette();
+  }
+
+  Future<void> _fetchPalette() async {
+    final paletteGenerator = await PaletteGenerator.fromImageProvider(
+      NetworkImage(widget.pokemon.imageUrl),
+      maximumColorCount: 5,
+    );
+    setState(() {
+      primaryColor = paletteGenerator.dominantColor?.color ?? Colors.grey;
+      secondaryColor = paletteGenerator.vibrantColor?.color ??
+          paletteGenerator.lightVibrantColor?.color ??
+          paletteGenerator.darkMutedColor?.color ??
+          Colors.black;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Pokemon pokemon = ModalRoute.of(context)!.settings.arguments as Pokemon;
-    final Color typeColor = getTypeColor(pokemon.type);
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double circleSize = screenHeight * 0.4; // El círculo ocupa el 40% de la pantalla
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          pokemon.name.toUpperCase(),
+          widget.pokemon.name.toUpperCase(),
           style: GoogleFonts.pressStart2p(),
         ),
-        backgroundColor: typeColor,
+        backgroundColor: primaryColor,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            CircleAvatar(
-              radius: 80,
-              backgroundColor: typeColor.withOpacity(0.5),
-              child: Image.network(pokemon.imageUrl, height: 150 ),
-            ),
-            SizedBox(height: 16),
-            Text('#${pokemon.id}', style: GoogleFonts.pressStart2p(fontSize: 14)),
-            Text('Type: ${pokemon.type}',
-                style: GoogleFonts.pressStart2p(fontSize: 14, color: typeColor)),
-            SizedBox(height: 10),
-            Text('Abilities:',
-                style: GoogleFonts.pressStart2p(fontSize: 14, fontWeight: FontWeight.bold)),
-            ...pokemon.abilities.map((ability) => Text(ability, style: GoogleFonts.pressStart2p(fontSize: 12))),
-            SizedBox(height: 10),
-            Text('Main Move:',
-                style: GoogleFonts.pressStart2p(fontSize: 14, fontWeight: FontWeight.bold)),
-            Text(pokemon.mainMove, style: GoogleFonts.pressStart2p(fontSize: 12)),
-            SizedBox(height: 20),
-            Text('Stats:',
-                style: GoogleFonts.pressStart2p(fontSize: 14, fontWeight: FontWeight.bold)),
-            StatBar(label: 'Attack', value: 70),
-            StatBar(label: 'Defense', value: 60),
-            StatBar(label: 'Speed', value: 80),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class StatBar extends StatelessWidget {
-  final String label;
-  final int value;
-
-  const StatBar({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
+      body: Column(
         children: [
-          SizedBox(width: 100, child: Text(label, style: GoogleFonts.pressStart2p(fontSize: 12))),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                height: circleSize,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: primaryColor.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              Image.network(
+                widget.pokemon.imageUrl,
+                height: circleSize * 1, // Imagen más grande dentro del círculo
+                fit: BoxFit.contain,
+              ),
+            ],
+          ),
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: LinearProgressIndicator(
-                value: value / 100,
-                color: Colors.blue,
-                backgroundColor: Colors.grey[300],
-                minHeight: 10,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(15.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text('#${widget.pokemon.id}' ,
+                        style: GoogleFonts.pressStart2p(fontSize: 14)),
+                    Text('Type: ${widget.pokemon.type}',
+                        style: GoogleFonts.pressStart2p(
+                            fontSize: 14, color: primaryColor)),
+                    const SizedBox(height: 20),
+                    _buildStatBar('HP', widget.pokemon.hp),
+                    _buildStatBar('Attack', widget.pokemon.attack),
+                    _buildStatBar('Defense', widget.pokemon.defense),
+                    _buildStatBar('Speed', widget.pokemon.speed),
+                    _buildStatBar('Sp. Attack', widget.pokemon.spAttack),
+                    _buildStatBar('Sp. Defense', widget.pokemon.spDefense),
+                    _buildStatBar('Accuracy', widget.pokemon.accuracy),
+                    _buildStatBar('Evasion', widget.pokemon.evasion),
+                  ],
+                ),
               ),
             ),
           ),
@@ -80,15 +99,33 @@ class StatBar extends StatelessWidget {
       ),
     );
   }
-}
 
-Color getTypeColor(String type) {
-  switch (type.toLowerCase()) {
-    case 'fire': return Colors.red;
-    case 'water': return Colors.blue;
-    case 'grass': return Colors.green;
-    case 'electric': return Colors.yellow;
-    case 'psychic': return Colors.purple;
-    default: return Colors.grey;
+  Widget _buildStatBar(String label, int value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(label, style: GoogleFonts.pressStart2p(fontSize: 12)),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: LinearProgressIndicator(
+                value: value / 100,
+                color: primaryColor, // Color dinámico según la paleta del Pokémon
+                backgroundColor: secondaryColor.withOpacity(0.3),
+                minHeight: 10,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 40,
+            child: Text('$value', style: GoogleFonts.pressStart2p(fontSize: 12)),
+          ),
+        ],
+      ),
+    );
   }
 }

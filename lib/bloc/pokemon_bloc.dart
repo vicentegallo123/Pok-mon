@@ -1,66 +1,113 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/models/pokemon.dart';
+import 'package:flutter/material.dart';
 import '../../data/repositories/pokemon_repository.dart';
+import 'pokemon_event.dart';
+import 'pokemon_state.dart';
+import 'dart:async';
 
-/// Eventos para manejar las interacciones con la lista de Pokémon.
-abstract class PokemonEvent {}
-
-/// Evento para cargar la lista completa de Pokémon.
-class LoadPokemons extends PokemonEvent {}
-
-/// Evento para buscar Pokémon según un término de búsqueda.
-class SearchPokemons extends PokemonEvent {
-  /// Término de búsqueda ingresado por el usuario.
-  final String query;
-
-  /// Constructor que recibe el término de búsqueda.
-  SearchPokemons(this.query);
-}
-
-/// Estados posibles del `Bloc` al manejar la lista de Pokémon.
-abstract class PokemonState {}
-
-/// Estado que indica que los datos están siendo cargados.
-class PokemonLoading extends PokemonState {}
-
-/// Estado que indica que los Pokémon han sido cargados correctamente.
-class PokemonLoaded extends PokemonState {
-  /// Lista de Pokémon obtenidos.
-  final List<Pokemon> pokemons;
-
-  /// Constructor que recibe la lista de Pokémon cargados.
-  PokemonLoaded(this.pokemons);
-}
-
-/// Estado que indica que ha ocurrido un error al obtener los Pokémon.
-class PokemonError extends PokemonState {}
-
-/// `Bloc` que maneja la lógica de carga y búsqueda de Pokémon.
 class PokemonBloc extends Bloc<PokemonEvent, PokemonState> {
-  /// Repositorio para obtener los datos de Pokémon.
   final PokemonRepository repository;
+  int currentPage = 0;
+  final int limit = 20; // Cambiado a 20 para la paginación correcta
+  bool hasReachedMax = false;
+  bool isSearching = false;
 
-  /// Constructor del Bloc que inicializa el estado en [PokemonLoading].
   PokemonBloc(this.repository) : super(PokemonLoading()) {
-    /// Maneja el evento [LoadPokemons] para cargar los datos de Pokémon.
-    on<LoadPokemons>((event, emit) async {
-      try {
-        final pokemons = await repository.fetchPokemons();
-        emit(PokemonLoaded(pokemons));
-      } catch (_) {
-        emit(PokemonError());
-      }
-    });
+    on<LoadPokemons>(_onLoadPokemons);
+    on<LoadMorePokemons>(_onLoadMorePokemons);
+    on<SearchPokemons>(_onSearchPokemons);
+    on<ClearSearch>(_onClearSearch);
+  }
 
-    /// Maneja el evento [SearchPokemons] para filtrar Pokémon por nombre.
-    on<SearchPokemons>((event, emit) async {
-      if (state is PokemonLoaded) {
-        final pokemons = (state as PokemonLoaded).pokemons;
-        final filteredPokemons = pokemons
-            .where((p) => p.name.toLowerCase().contains(event.query.toLowerCase()))
-            .toList();
-        emit(PokemonLoaded(filteredPokemons));
+  Future<void> _onLoadPokemons(
+      LoadPokemons event, Emitter<PokemonState> emit) async {
+    isSearching = false;
+    emit(PokemonLoading());
+    try {
+      currentPage = 0;
+      hasReachedMax = false;
+
+      final pokemons = await repository.fetchPokemons(page: currentPage, limit: limit);
+      emit(PokemonLoaded(
+        pokemons: pokemons,
+        hasReachedMax: pokemons.length < limit,
+        currentPage: currentPage,
+        isSearching: isSearching,
+        pokemonCount: pokemons.length,
+      ));
+    } catch (e) {
+      emit(PokemonError("Error al cargar Pokémon: ${e.toString()}"));
+    }
+  }
+
+  Future<void> _onLoadMorePokemons(
+      LoadMorePokemons event, Emitter<PokemonState> emit) async {
+    if (hasReachedMax) return;
+    final currentState = state;
+
+    if (currentState is PokemonLoaded) {
+      try {
+        emit(PokemonLoadingMore()); // Nueva animación de carga con GIF
+        await Future.delayed(Duration(seconds: 5)); // Simulación de carga con animación
+
+        currentPage++;
+        final newPokemons = await repository.fetchPokemons(page: currentPage, limit: limit);
+
+        if (newPokemons.isEmpty) {
+          hasReachedMax = true;
+        }
+
+        emit(currentState.copyWith(
+          pokemons: List.from(currentState.pokemons)..addAll(newPokemons),
+          hasReachedMax: newPokemons.isEmpty,
+          currentPage: currentPage,
+          pokemonCount: currentState.pokemonCount + newPokemons.length,
+        ));
+      } catch (e) {
+        emit(PokemonError("Error al cargar más Pokémon: ${e.toString()}"));
       }
-    });
+    }
+  }
+
+  Future<void> _onSearchPokemons(
+      SearchPokemons event, Emitter<PokemonState> emit) async {
+    isSearching = true;
+    emit(PokemonLoading());
+    try {
+      final pokemons = await repository.searchPokemons(event.query);
+      emit(PokemonLoaded(
+        pokemons: pokemons,
+        hasReachedMax: true,
+        currentPage: 0,
+        isSearching: true,
+        pokemonCount: pokemons.length, // Cuenta correctamente los resultados de la búsqueda
+      ));
+    } catch (e) {
+      emit(PokemonError("Error al buscar Pokémon: ${e.toString()}"));
+    }
+  }
+
+  Future<void> _onClearSearch(
+      ClearSearch event, Emitter<PokemonState> emit) async {
+    isSearching = false;
+    add(LoadPokemons()); // Recargar Pokémon desde el inicio
+  }
+}
+
+class PokemonLoadingMore extends PokemonState {}
+
+class PokemonLoadingMoreWidget extends StatelessWidget {
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        children: [
+          Image.asset('assets/pikachu.gif', height: 50),
+          const SizedBox(height: 10),
+          const Text("Cargando más Pokémon...", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 }
